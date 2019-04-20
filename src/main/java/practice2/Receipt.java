@@ -13,33 +13,40 @@ public class Receipt {
     private BigDecimal tax;
 
     public double CalculateGrandTotal(List<Product> products, List<OrderItem> items) {
+
         BigDecimal subTotal = calculateSubtotal(products, items);
-
-        for (Product product : products) {
-            OrderItem curItem = findOrderItemByProduct(items, product);
-
-            BigDecimal reducedPrice = product.getPrice()
-                    .multiply(product.getDiscountRate())
-                    .multiply(new BigDecimal(curItem.getCount()));
-
-            subTotal = subTotal.subtract(reducedPrice);
-        }
-        BigDecimal taxTotal = subTotal.multiply(tax);
-        BigDecimal grandTotal = subTotal.add(taxTotal);
-
+        subTotal = reduceDiscount(subTotal,products,items);
+        BigDecimal grandTotal =  addTax(subTotal);
         return grandTotal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
 
+    private  BigDecimal addTax(BigDecimal total){
+        return  total.add(total.multiply(tax));
+    }
+
+    private BigDecimal reduceDiscount(BigDecimal total,List<Product> products, List<OrderItem> items){
+
+        for (Product product : products) {
+            OrderItem curItem = findOrderItemByProduct(items, product);
+            total = total.subtract(reduceOneItemDiscount(curItem,product));
+        }
+        return  total;
+    }
+
+    private BigDecimal reduceOneItemDiscount(OrderItem item,Product product){
+
+        BigDecimal oneItemReduce = product.getPrice().multiply(product.getDiscountRate());
+        BigDecimal allOrderItemReduce = oneItemReduce.multiply(new BigDecimal(item.getCount()));
+        return allOrderItemReduce;
+    }
 
     private OrderItem findOrderItemByProduct(List<OrderItem> items, Product product) {
-        OrderItem curItem = null;
         for (OrderItem item : items) {
             if (item.getCode() == product.getCode()) {
-                curItem = item;
-                break;
+                return  item;
             }
         }
-        return curItem;
+        return null;
     }
 
     private BigDecimal calculateSubtotal(List<Product> products, List<OrderItem> items) {
@@ -52,3 +59,4 @@ public class Receipt {
         return subTotal;
     }
 }
+
